@@ -1,0 +1,48 @@
+# Evaluation only (fork selcukgural/MimeKit): TestDetta in shadow mode on MimeKit's own recent commits.
+# Each replayed commit gets two branches: base/<n> (its parent, where coverage maps are recorded) and
+# replay/<n> (the commit itself, opened as a pull request into base/<n>, where shadow mode runs every
+# test and reports what the selection would have run). Upstream's workflows are removed in these
+# branches only, so that they do not run here; nothing in this fork is meant for upstream.
+name: TestDetta
+
+on:
+  push:
+    branches: ['base/**']
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read # lets pull requests find the coverage map in the Actions cache
+
+jobs:
+  testdetta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      # As upstream's Linux legs build (-property:MonoRuntime=true): defines MONO and picks the linux-x64
+      # SQLite runtime. MSBuild reads environment variables as properties, so every build sees it:
+      # TestDetta's recording build and project evaluation, and the shadow run's dotnet test.
+      MonoRuntime: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # TestDetta compares with the merge base
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - if: github.event_name == 'push'
+        uses: TestDetta/action@79251cd289dd85199f4f166fc5047a8c6ef1648c # v0.2.1
+        with:
+          mode: record
+          projects: UnitTests/UnitTests.csproj
+
+      - if: github.event_name == 'pull_request'
+        uses: TestDetta/action@79251cd289dd85199f4f166fc5047a8c6ef1648c # v0.2.1
+        with:
+          mode: shadow
+          dotnet-test-args: UnitTests/UnitTests.csproj
