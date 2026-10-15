@@ -1,0 +1,21 @@
+# Evaluation only: restores the coverage map recorded on base/07 and keeps it as an artifact to read.
+name: Inspect map
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ./.testdetta/coverage
+          key: testdetta-coverage-340477a1fcc1ef779c6ca8b8086aa0bec6f6bfcd
+          fail-on-cache-miss: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: map-base-07
+          path: ./.testdetta/coverage
+          include-hidden-files: true
